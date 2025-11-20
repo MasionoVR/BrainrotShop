@@ -20,14 +20,6 @@
 
   <div class="grid"></div>
 
-  <div id="adminLogin" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000c; backdrop-filter:blur(5px); display:flex; align-items:center; justify-content:center; z-index:9999;">
-    <div style="background:#222; padding:30px; border-radius:12px; width:300px; text-align:center;">
-      <h2>Admin Login</h2>
-      <input id="adminPass" type="password" placeholder="Enter Password" style="width:100%; padding:10px; margin-top:10px; border-radius:8px; border:none;">
-      <button onclick="checkPass()" style="margin-top:15px; padding:10px 20px; border:none; background:#ff3cc7; font-weight:bold; border-radius:8px; cursor:pointer;">Login</button>
-    </div>
-  </div>
-
   <div id="adminPanel">
     <h2>Admin Panel</h2>
     <h3>Page Settings</h3>
@@ -52,37 +44,31 @@
   </div>
 
   <script>
-  (function(){
-    const _0xpass = '00046974';
-    if(localStorage.getItem('adminAccess')==='true'){
-      document.getElementById('adminPanel').style.display='none';
-    }
+  let __ctrlPressed=false;
+  let __endPressed=false;
 
-    window.checkPass = function(){
-      const p = document.getElementById('adminPass').value;
-      if(p === _0xpass){
-        document.getElementById('adminLogin').style.display='none';
-        document.getElementById('adminPanel').style.display='none';
-        localStorage.setItem('adminAccess','true');
-      } else alert('Incorrect password');
-    };
-  })();
-
-  let __endPressed=false, __delPressed=false;
   document.addEventListener('keydown',(e)=>{
+    if(e.key==='Control') __ctrlPressed=true;
     if(e.key==='End') __endPressed=true;
-    if(e.key==='Delete') __delPressed=true;
-    if(__endPressed && __delPressed){
-      document.getElementById('adminLogin').style.display='flex';
+
+    if(__ctrlPressed && __endPressed){
+      const panel=document.getElementById('adminPanel');
+      panel.style.display=panel.style.display==='none'?'block':'none';
+      __ctrlPressed=false;
       __endPressed=false;
-      __delPressed=false;
     }
+  });
+
+  document.addEventListener('keyup',(e)=>{
+    if(e.key==='Control') __ctrlPressed=false;
+    if(e.key==='End') __endPressed=false;
   });
 
   function changeBG(){
     const color=document.getElementById('bgColor').value;
     if(color) document.body.style.background=color;
   }
+
   function searchItems(){
     const term=document.getElementById('searchBox').value.toLowerCase();
     document.querySelectorAll('.item').forEach(i=>{
