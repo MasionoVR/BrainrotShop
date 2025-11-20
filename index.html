@@ -72,15 +72,16 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const itemsRef = ref(db, 'shop/items');
 
-// Wait for DOM to load before attaching events
 document.addEventListener('DOMContentLoaded', () => {
 
-  // Admin panel toggle: Ctrl + Shift + K
+  // Admin panel toggle: END key
   document.addEventListener('keydown', e => {
-    if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'k'){
-      e.preventDefault();
+    if (e.key === 'End') {
+      e.preventDefault(); // prevent scrolling
       const panel = document.getElementById('adminPanel');
-      if(panel) panel.style.display = (panel.style.display==='block')?'none':'block';
+      if(panel){
+        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+      }
     }
   });
 
